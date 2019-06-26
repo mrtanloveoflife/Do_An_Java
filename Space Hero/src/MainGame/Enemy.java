@@ -36,13 +36,13 @@ public class Enemy extends Sprite implements Common {
 	public void move(int status) {
 		switch (status) {
 			case 0:
-				x += ENEMY_SPEED;
+				x += ENEMY_SPEED_X;
 				break;
 		 	case 1:
-		 		x -= ENEMY_SPEED;
+		 		x -= ENEMY_SPEED_X;
 		 		break;
 		 	case 2:
-		 		y += ENEMY_SPEED;
+		 		y += ENEMY_SPEED_Y;
 		 		break;
 		 }
 	}

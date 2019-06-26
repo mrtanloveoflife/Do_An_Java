@@ -2,12 +2,17 @@ package MainGame;
 
 public class Bullet extends Sprite implements Common {
 	private int type; // 0 là đạn do hero bắn, 1 là đạn do địch bắn
+	private int level;
 	
 	public Bullet(int x, int y, int type, int heroLevel) {
 		super(x, y);
 		initBullet(type, heroLevel);
 		this.x = x - width / 2;
 		this.y = y - height / 2;
+		if (type == 0)
+			level = heroLevel;
+		else
+			level = 0;
 	}
 
 	private void initBullet(int type, int heroLevel) {
@@ -35,7 +40,7 @@ public class Bullet extends Sprite implements Common {
 
 	public void move() {
 		if (type == 0) {
-			y -= BULLET_SPEED;
+			y -= BULLET_SPEED + level - 1;
 		} else {
 			y += BULLET_SPEED;
 		}
@@ -43,5 +48,13 @@ public class Bullet extends Sprite implements Common {
 	
 	public int getType() {
 		return type;
+	}
+	
+	public int getLevel() {
+		return level;
+	}
+	
+	public void setLevel(int level) {
+		this.level = level;
 	}
 }
