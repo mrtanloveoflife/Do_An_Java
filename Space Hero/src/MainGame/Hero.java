@@ -27,6 +27,8 @@ public class Hero extends Sprite implements Common {
 	}
  
 	public void move() {
+		if (dx == 0 && dy == 0) return;
+		
 		if (x < dx) x += HERO_SPEED;
 		if (x > dx) x -= HERO_SPEED;
 		

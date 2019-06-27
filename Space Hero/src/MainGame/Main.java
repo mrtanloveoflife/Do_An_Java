@@ -1,16 +1,23 @@
 package MainGame;
 
 import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.Font;
+import java.awt.FontFormatException;
 import java.awt.Graphics;
+import java.awt.GraphicsEnvironment;
 import java.awt.Image;
+import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.awt.event.MouseMotionAdapter;
 import java.awt.event.MouseMotionListener;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Random;
@@ -33,23 +40,59 @@ public class Main extends JPanel implements ActionListener, Common {
 	 private boolean changingStage;
 	 private Calendar changeStageTime;
 	 private Image backgroundImage;
+	 private Image titleImage;
+	 private Image titleImage2;
+	 private Image titleImage3;
+	 private Image titleImage4;
+	 private boolean inMenu;
 
-	 private void initBoard() {
-		 inGame = true;
-		 point = 0;
-		 addMouseMotionListener(new MMAdapter());
-		 addMouseListener(new MAdapter());
+	 private void initMain() {
+		 inMenu = true;
 		 setFocusable(true);
 		 setBackground(Color.BLACK);
 		 setDoubleBuffered(true);
-		 hero = new Hero(INIT_HERO_X, INIT_HERO_Y);
 		 timer = new Timer(DELAY, this);
 		 timer.start();
+		 backgroundImage = new ImageIcon("images/backgrounds/background_1.jpg").getImage();
+		 titleImage = new ImageIcon("images/backgrounds/title.png").getImage();
+		 titleImage2 = new ImageIcon("images/backgrounds/title_2.png").getImage();
+		 titleImage3 = new ImageIcon("images/backgrounds/title_3.png").getImage();
+		 titleImage4 = new ImageIcon("images/backgrounds/title_4.png").getImage();
+		 addMouseMotionListener(new MMAdapter());
+		 addMouseListener(new MAdapter());
+		 
+		 // Add new fonts
+		 try {
+			    //create the font to use. Specify the size!
+			    Font customFont = Font.createFont(Font.TRUETYPE_FONT, new File("fonts/8-bit wonder.ttf")).deriveFont(12f);
+			    GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+			    //register the font
+			    ge.registerFont(customFont);
+			} catch (IOException e) {
+			    e.printStackTrace();
+			} catch(FontFormatException e) {
+			    e.printStackTrace();
+			}
+		 
+		// Transparent 16 x 16 pixel cursor image.
+		 BufferedImage cursorImg = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
+
+		 // Create a new blank cursor.
+		 Cursor blankCursor = Toolkit.getDefaultToolkit().createCustomCursor(
+		     cursorImg, new Point(0, 0), "blank cursor");
+
+		 // Set the blank cursor to the JFrame.
+		 this.setCursor(blankCursor);
+	 }
+	 
+	 private void initGame() {
+		 inGame = true;
+		 point = 0;
+		 hero = new Hero(INIT_HERO_X, INIT_HERO_Y);
 		 stage = 0;
 		 enemies = new ArrayList<Enemy>();
 		 items = new ArrayList<Item>();
 		 bullets = new ArrayList<Bullet>();
-		 backgroundImage = new ImageIcon("images/backgrounds/background_1.jpg").getImage();
 		 setStageChange();
 	 }
 	 
@@ -69,12 +112,14 @@ public class Main extends JPanel implements ActionListener, Common {
 	 private class MMAdapter implements MouseMotionListener {
 		 @Override
 		 public void mouseMoved(MouseEvent e) {
-			 hero.mouseMoved(e);
+			 if (!inMenu && inGame)
+				 hero.mouseMoved(e);
 		 }
 
 		@Override
 		public void mouseDragged(MouseEvent e) {
-			hero.mouseMoved(e);
+			if (!inMenu && inGame)
+				hero.mouseMoved(e);
 		}
 	 }
 	 
@@ -82,9 +127,18 @@ public class Main extends JPanel implements ActionListener, Common {
 
 		@Override
 			public void mousePressed(MouseEvent e) {
-				// Nhấp chuột trái sẽ bắn
 				if (e.getButton() == MouseEvent.BUTTON1)
-					hero.setShooting(true);
+					// Nếu còn ở menu thì nhấp chuột để bắt đầu
+					if (inMenu) {
+						initGame();
+						inMenu = false;
+					}
+					// Nếu game over thì restart game
+					else if (!inGame)
+						inMenu = true;
+					// Nhấp chuột trái sẽ bắn
+					else 
+						hero.setShooting(true);
 		}
 		
 		@Override
@@ -147,11 +201,21 @@ public class Main extends JPanel implements ActionListener, Common {
 		 // Draw Background
 		 g.drawImage(backgroundImage, 0, 0, this);
 		 
-		 if (inGame) {
-			 drawObject(g);
+		 if (inMenu) {
+			 drawMenu(g);
+		 }
+		 else if (inGame) {
+				 drawObject(g);
 		 } else {
 			 drawGameOver(g);
 		 }
+	 }
+	 
+	 private void drawMenu(Graphics g) {
+		 g.drawImage(titleImage, Common.WIDTH / 2 - titleImage.getWidth(null) / 2, Common.HEIGHT / 2 - titleImage.getHeight(null), this);
+		 if (Calendar.getInstance().getTimeInMillis() / 500 % 3 > 0)
+			 g.drawImage(titleImage2, Common.WIDTH / 2 - titleImage2.getWidth(null) / 2, Common.HEIGHT / 2 + titleImage.getHeight(null) - titleImage.getHeight(null), this);
+		 
 	 }
 	 
 	 private void drawObject(Graphics g) {
@@ -173,30 +237,36 @@ public class Main extends JPanel implements ActionListener, Common {
 		  
 
 		 // Draw Point
-		 Font font = new Font("Arial", Font.BOLD, 15);
-		 g.setColor(Color.WHITE);
+		 Font font = new Font("8bit wonder", Font.PLAIN, 15);
+		 g.setColor(Color.CYAN);
 		 g.setFont(font);
-		 g.drawString("Your point: " + point, 5, 20);
-		 g.drawString("Your hearth: " + hero.health, 5, 40);
-		 g.drawString("Your level: " + hero.getLevel(), 5, 60);
+		 g.drawString("Your point " + point, 5, 20);
+		 g.drawString("Your health " + hero.health, 5, 40);
+		 g.drawString("Your level " + hero.getLevel(), 5, 60);
 		 
 		 if (changingStage)
 			 g.drawString("STAGE " + (stage + 1), Common.WIDTH / 2 - 20, Common.HEIGHT / 2 - 20);
 		 else
-			 g.drawString("STAGE : " + (stage + 1), Common.WIDTH / 2 - 20, 20);
+			 g.drawString("STAGE " + (stage + 1), Common.WIDTH / 2 - 20, 20);
 	}
 	 
 	 private void drawGameOver(Graphics g) {
-		 Font font = new Font("Helvetica", Font.BOLD, 20);
+		 Font font = new Font("8bit wonder",Font.PLAIN, 30);
 		 g.setColor(Color.WHITE);
 		 g.setFont(font);
-		 g.drawString("Game over!", 350, Common.HEIGHT / 2);
-		 g.drawString("Score: " + point, 370, Common.HEIGHT / 2 + 30);
+		 
+		 g.drawImage(titleImage3, Common.WIDTH / 2 - titleImage3.getWidth(null) / 2 - 30, Common.HEIGHT / 2 - titleImage3.getHeight(null) / 2 - 30, this);
+		 g.drawString("" + point, 500, 325);
+		 if (Calendar.getInstance().getTimeInMillis() / 500 % 3 > 0)
+			 g.drawImage(titleImage4, Common.WIDTH / 2 - titleImage4.getWidth(null) / 2 - 10, Common.HEIGHT / 2 + titleImage3.getHeight(null) - titleImage4.getHeight(null) - 50, this);
 	 }
 	 
 	 @Override
 	 public void actionPerformed(ActionEvent e) {
-		 inGame();
+		 if (inMenu || !inGame) {
+			 repaint();
+			 return;
+		 }
 		 
 		// Update Object
 		 updateHero();				 
@@ -278,13 +348,7 @@ public class Main extends JPanel implements ActionListener, Common {
 				 }
 		 }
 	 }
-	 
-	 private void inGame() {
-		 if (!inGame) {
-			 timer.stop();
-		 }
-	 }
-	 
+
 	 private boolean random(double percent) {
 		 return new Random().nextInt() % (int)(1.0 / (percent) * 100) == 0;
 	 }
@@ -321,7 +385,7 @@ public class Main extends JPanel implements ActionListener, Common {
 		 // Loại bỏ enemy hết máu hoặc xuống dưới màn hình, một số con có xác suất rớt item 5%.
 		 for (int i = 0; i < enemies.size(); i++) {
 			 Enemy enemy = enemies.get(i);
-			 if (!enemy.isAlive() || (enemy.getY() > Common.HEIGHT)) {
+			 if (!enemy.isAlive() || (enemy.getY() >= Common.HEIGHT)) {
 				 enemies.remove(i);
 				 if (random(5))
 					 initItem(enemy.getX() - enemy.width / 2, enemy.getY());
@@ -385,6 +449,6 @@ public class Main extends JPanel implements ActionListener, Common {
 	 }
 	 
 	 public Main() {
-		 initBoard();
+		 initMain();
 	 }
 }
